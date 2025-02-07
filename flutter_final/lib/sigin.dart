@@ -183,42 +183,42 @@ class _SignInState extends State<SignIn> {
               const SizedBox(height: 20),
 
               // Google Sign In
-              ElevatedButton.icon(
-                onPressed: () => print('Google Sign In clicked'),
-                label: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Image.asset("assets/google.png", height: 20),
-                    const Text('Sign in with Google'),
-                  ],
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: Colors.black,
-                  side: const BorderSide(color: Colors.grey),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                ),
-              ),
+              // ElevatedButton.icon(
+              //   onPressed: () => print('Google Sign In clicked'),
+              //   label: Row(
+              //     mainAxisAlignment: MainAxisAlignment.center,
+              //     children: [
+              //       Image.asset("assets/google.png", height: 20),
+              //       const Text('Sign in with Google'),
+              //     ],
+              //   ),
+              //   style: ElevatedButton.styleFrom(
+              //     backgroundColor: Colors.white,
+              //     foregroundColor: Colors.black,
+              //     side: const BorderSide(color: Colors.grey),
+              //     shape: RoundedRectangleBorder(
+              //       borderRadius: BorderRadius.circular(30),
+              //     ),
+              //     padding: const EdgeInsets.symmetric(vertical: 12),
+              //   ),
+              // ),
               const SizedBox(height: 10),
 
               // Facebook Sign In
-              ElevatedButton.icon(
-                onPressed: () => print('Facebook Sign In clicked'),
-                icon: Image.asset('assets/facebook.png', height: 20),
-                label: const Text('Sign in with Facebook'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: Colors.black,
-                  side: const BorderSide(color: Colors.grey),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                ),
-              ),
+              // ElevatedButton.icon(
+              //   onPressed: () => print('Facebook Sign In clicked'),
+              //   icon: Image.asset('assets/facebook.png', height: 20),
+              //   label: const Text('Sign in with Facebook'),
+              //   style: ElevatedButton.styleFrom(
+              //     backgroundColor: Colors.white,
+              //     foregroundColor: Colors.black,
+              //     side: const BorderSide(color: Colors.grey),
+              //     shape: RoundedRectangleBorder(
+              //       borderRadius: BorderRadius.circular(30),
+              //     ),
+              //     padding: const EdgeInsets.symmetric(vertical: 12),
+              //   ),
+              // ),
 
               const Spacer(),
             ],

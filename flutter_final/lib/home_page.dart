@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_final/maps.dart';
 
 defaultPadding() => const EdgeInsets.symmetric(horizontal: 20);
 
@@ -111,23 +112,32 @@ class HomePage extends StatelessWidget {
             // Categories Section
             Padding(
               padding: defaultPadding().copyWith(top: 20),
-              child: const Column(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  const Text(
                     'Categories',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  SizedBox(height: 15),
+                  const SizedBox(height: 15),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      CategoryCard(icon: Icons.person, label: 'Top Doctors'),
-                      CategoryCard(icon: Icons.local_pharmacy, label: 'Pharmacy'),
-                      CategoryCard(icon: Icons.local_hospital, label: 'Ambulance'),
+                      const CategoryCard(icon: Icons.person, label: 'Top Doctors'),
+                      const CategoryCard(icon: Icons.local_pharmacy, label: 'Pharmacy'),
+                      GestureDetector(
+                        onTap: () {
+                          // Navigate to Ambulance Page
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => GoogleMapFlutter()),
+                          );
+                        },
+                        child: const CategoryCard(icon: Icons.local_hospital, label: 'Ambulance'),
+                      ),
                     ],
                   ),
                 ],
@@ -279,6 +289,17 @@ class HealthArticleCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+// Dummy Ambulance Page (Replace this with your actual page)
+class YourAmbulancePage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Ambulance Service')),
+      body: const Center(child: Text('Ambulance Service Page')),
     );
   }
 }

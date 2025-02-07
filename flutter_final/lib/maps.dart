@@ -90,3 +90,125 @@ class _GoogleMapFlutterState extends State<GoogleMapFlutter> {
     );
   }
 }
+
+
+
+// import 'package:flutter/material.dart';
+// import 'package:google_maps_flutter/google_maps_flutter.dart';
+// import 'package:geolocator/geolocator.dart';
+// import 'package:permission_handler/permission_handler.dart';
+
+// class GoogleMapFlutter extends StatefulWidget {
+//   const GoogleMapFlutter({super.key});
+
+//   @override
+//   State<GoogleMapFlutter> createState() => _GoogleMapFlutterState();
+// }
+
+// class _GoogleMapFlutterState extends State<GoogleMapFlutter> {
+//   LatLng myCurrentLocation = const LatLng(19.0760, 72.8777); // Default location
+//   bool isLocationPermissionGranted = false;
+//   Set<Marker> markers = {}; // Set to hold markers
+//   GoogleMapController? mapController; // Store GoogleMapController
+
+//   @override
+//   void initState() {
+//     super.initState();
+//     _checkLocationPermission();
+//   }
+
+//   // Check and request location permission
+//   Future<void> _checkLocationPermission() async {
+//     final status = await Permission.location.status;
+//     if (status.isGranted) {
+//       setState(() => isLocationPermissionGranted = true);
+//       _getUserLocation();
+//     } else {
+//       final newStatus = await Permission.location.request();
+//       if (newStatus.isGranted) {
+//         setState(() => isLocationPermissionGranted = true);
+//         _getUserLocation();
+//       } else {
+//         _showPermissionDeniedMessage();
+//       }
+//     }
+//   }
+
+//   void _showPermissionDeniedMessage() {
+//     ScaffoldMessenger.of(context).showSnackBar(
+//       const SnackBar(
+//         content: Text('Location permission is required to access your location.'),
+//       ),
+//     );
+//   }
+
+//   // Get user's current location and track updates
+//   Future<void> _getUserLocation() async {
+//     try {
+//       Position position = await Geolocator.getCurrentPosition(
+//         desiredAccuracy: LocationAccuracy.high,
+//       );
+
+//       setState(() {
+//         myCurrentLocation = LatLng(position.latitude, position.longitude);
+//         markers.add(
+//           Marker(
+//             markerId: const MarkerId("CurrentLocation"),
+//             icon: BitmapDescriptor.defaultMarker,
+//             position: myCurrentLocation,
+//           ),
+//         );
+//       });
+
+//       // Move camera to current location
+//       mapController?.animateCamera(
+//         CameraUpdate.newLatLng(myCurrentLocation),
+//       );
+
+//       // Listen for live location updates
+//       Geolocator.getPositionStream(
+//         locationSettings: LocationSettings(
+//           accuracy: LocationAccuracy.high,
+//           distanceFilter: 10, // Update location every 10 meters
+//         ),
+//       ).listen((Position newPosition) {
+//         setState(() {
+//           myCurrentLocation = LatLng(newPosition.latitude, newPosition.longitude);
+//           markers.clear();
+//           markers.add(
+//             Marker(
+//               markerId: const MarkerId("CurrentLocation"),
+//               icon: BitmapDescriptor.defaultMarker,
+//               position: myCurrentLocation,
+//             ),
+//           );
+//         });
+
+//         // Move camera when location updates
+//         mapController?.animateCamera(
+//           CameraUpdate.newLatLng(myCurrentLocation),
+//         );
+//       });
+//     } catch (e) {
+//       print("Error getting location: $e");
+//     }
+//   }
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       body: GoogleMap(
+//         initialCameraPosition: CameraPosition(
+//           target: myCurrentLocation,
+//           zoom: 15,
+//         ),
+//         markers: markers, 
+//         myLocationEnabled: true, 
+//         myLocationButtonEnabled: true, 
+//         onMapCreated: (GoogleMapController controller) {
+//           mapController = controller; // Assign controller
+//         },
+//       ),
+//     );
+//   }
+// }
