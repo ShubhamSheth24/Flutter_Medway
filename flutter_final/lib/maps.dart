@@ -1,7 +1,12 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:http/http.dart' as http;
+
+const String googleApiKey =
+    "YOUR_GOOGLE_MAPS_API_KEY"; // Replace with your API Key
 
 class GoogleMapFlutter extends StatefulWidget {
   const GoogleMapFlutter({super.key});
@@ -11,9 +16,12 @@ class GoogleMapFlutter extends StatefulWidget {
 }
 
 class _GoogleMapFlutterState extends State<GoogleMapFlutter> {
-  LatLng myCurrentLocation = const LatLng(19.0760, 72.8777); // Default location
+  late GoogleMapController _mapController;
+  LatLng myCurrentLocation = const LatLng(19.0760, 72.8777); // Default Mumbai
+  LatLng hospitalLocation = const LatLng(19.0990, 72.8740); // Example hospital
+  Set<Marker> markers = {};
+  Set<Polyline> polylines = {};
   bool isLocationPermissionGranted = false;
-  Set<Marker> markers = {}; // Set to hold markers
 
   @override
   void initState() {
@@ -30,46 +38,125 @@ class _GoogleMapFlutterState extends State<GoogleMapFlutter> {
       });
       _getUserLocation();
     } else {
-      // Handle denied permission
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-              'Location permission is required to access your current location.'),
+          content:
+              Text('Location permission is required to access your location.'),
         ),
       );
     }
   }
 
-  // Get user's current location and track live updates
+  // Get user's live location
   Future<void> _getUserLocation() async {
     try {
-      // Request location updates
-      final LocationSettings locationSettings = LocationSettings(
-        accuracy: LocationAccuracy
-            .high, // Use `accuracy` instead of `desiredAccuracy`
-        distanceFilter: 10, // Update location every 10 meters
+      LocationSettings locationSettings = const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 5, // Updates when the user moves 5 meters
       );
 
       Geolocator.getPositionStream(locationSettings: locationSettings)
           .listen((Position position) {
         setState(() {
-          // Update the current location
           myCurrentLocation = LatLng(position.latitude, position.longitude);
-
-          // Update the marker
-          markers.clear(); // Clear previous markers
-          markers.add(
-            Marker(
-              markerId: const MarkerId("CurrentLocation"),
-              icon: BitmapDescriptor.defaultMarker,
-              position: myCurrentLocation,
-            ),
-          );
+          _updateMarkers();
+          _fetchRoute(); // Get road-based polyline whenever location updates
         });
       });
     } catch (e) {
       print("Error getting location: $e");
     }
+  }
+
+  // Fetch road-based route from hospital to user
+  Future<void> _fetchRoute() async {
+    final String url =
+        "https://maps.googleapis.com/maps/api/directions/json?origin=${hospitalLocation.latitude},${hospitalLocation.longitude}&destination=${myCurrentLocation.latitude},${myCurrentLocation.longitude}&key=$googleApiKey&mode=driving";
+
+    final response = await http.get(Uri.parse(url));
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+
+      if (data["routes"].isNotEmpty) {
+        String encodedPolyline =
+            data["routes"][0]["overview_polyline"]["points"];
+        List<LatLng> polylineCoords = _decodePolyline(encodedPolyline);
+
+        setState(() {
+          polylines.clear(); // Clear old routes before adding a new one
+          polylines.add(
+            Polyline(
+              polylineId: const PolylineId("route"),
+              color: Colors.blue,
+              width: 6,
+              points: polylineCoords,
+              endCap: Cap.roundCap,
+              startCap: Cap.roundCap,
+              jointType: JointType.round,
+            ),
+          );
+        });
+      } else {
+        print("No route found");
+      }
+    } else {
+      print("Error fetching route: ${response.body}");
+    }
+  }
+
+  // Decode polyline points from Google API
+  List<LatLng> _decodePolyline(String encoded) {
+    List<LatLng> polylineCoordinates = [];
+    int index = 0, len = encoded.length;
+    int lat = 0, lng = 0;
+
+    while (index < len) {
+      int shift = 0, result = 0;
+      int byte;
+      do {
+        byte = encoded.codeUnitAt(index++) - 63;
+        result |= (byte & 0x1F) << shift;
+        shift += 5;
+      } while (byte >= 0x20);
+      int deltaLat = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
+      lat += deltaLat;
+
+      shift = 0;
+      result = 0;
+      do {
+        byte = encoded.codeUnitAt(index++) - 63;
+        result |= (byte & 0x1F) << shift;
+        shift += 5;
+      } while (byte >= 0x20);
+      int deltaLng = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
+      lng += deltaLng;
+
+      polylineCoordinates.add(LatLng(lat / 1E5, lng / 1E5));
+    }
+
+    return polylineCoordinates;
+  }
+
+  // Update markers (User & Hospital)
+  void _updateMarkers() {
+    markers.clear();
+
+    markers.add(
+      Marker(
+        markerId: const MarkerId("CurrentLocation"),
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+        position: myCurrentLocation,
+      ),
+    );
+
+    markers.add(
+      Marker(
+        markerId: const MarkerId("Hospital"),
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+        position: hospitalLocation,
+      ),
+    );
   }
 
   @override
@@ -80,135 +167,16 @@ class _GoogleMapFlutterState extends State<GoogleMapFlutter> {
           target: myCurrentLocation,
           zoom: 15,
         ),
-        markers: markers, // Add markers to the map
-        myLocationEnabled: true, // Enable showing the user's current location
-        myLocationButtonEnabled: true, // Enable the "my location" button
+        markers: markers,
+        polylines: polylines,
+        myLocationEnabled: true,
+        myLocationButtonEnabled: true,
+        compassEnabled: true,
         onMapCreated: (GoogleMapController controller) {
-          // Optionally, you can use the controller to interact with the map
+          _mapController = controller;
+          _fetchRoute(); // Load route once the map is ready
         },
       ),
     );
   }
 }
-
-
-
-// import 'package:flutter/material.dart';
-// import 'package:google_maps_flutter/google_maps_flutter.dart';
-// import 'package:geolocator/geolocator.dart';
-// import 'package:permission_handler/permission_handler.dart';
-
-// class GoogleMapFlutter extends StatefulWidget {
-//   const GoogleMapFlutter({super.key});
-
-//   @override
-//   State<GoogleMapFlutter> createState() => _GoogleMapFlutterState();
-// }
-
-// class _GoogleMapFlutterState extends State<GoogleMapFlutter> {
-//   LatLng myCurrentLocation = const LatLng(19.0760, 72.8777); // Default location
-//   bool isLocationPermissionGranted = false;
-//   Set<Marker> markers = {}; // Set to hold markers
-//   GoogleMapController? mapController; // Store GoogleMapController
-
-//   @override
-//   void initState() {
-//     super.initState();
-//     _checkLocationPermission();
-//   }
-
-//   // Check and request location permission
-//   Future<void> _checkLocationPermission() async {
-//     final status = await Permission.location.status;
-//     if (status.isGranted) {
-//       setState(() => isLocationPermissionGranted = true);
-//       _getUserLocation();
-//     } else {
-//       final newStatus = await Permission.location.request();
-//       if (newStatus.isGranted) {
-//         setState(() => isLocationPermissionGranted = true);
-//         _getUserLocation();
-//       } else {
-//         _showPermissionDeniedMessage();
-//       }
-//     }
-//   }
-
-//   void _showPermissionDeniedMessage() {
-//     ScaffoldMessenger.of(context).showSnackBar(
-//       const SnackBar(
-//         content: Text('Location permission is required to access your location.'),
-//       ),
-//     );
-//   }
-
-//   // Get user's current location and track updates
-//   Future<void> _getUserLocation() async {
-//     try {
-//       Position position = await Geolocator.getCurrentPosition(
-//         desiredAccuracy: LocationAccuracy.high,
-//       );
-
-//       setState(() {
-//         myCurrentLocation = LatLng(position.latitude, position.longitude);
-//         markers.add(
-//           Marker(
-//             markerId: const MarkerId("CurrentLocation"),
-//             icon: BitmapDescriptor.defaultMarker,
-//             position: myCurrentLocation,
-//           ),
-//         );
-//       });
-
-//       // Move camera to current location
-//       mapController?.animateCamera(
-//         CameraUpdate.newLatLng(myCurrentLocation),
-//       );
-
-//       // Listen for live location updates
-//       Geolocator.getPositionStream(
-//         locationSettings: LocationSettings(
-//           accuracy: LocationAccuracy.high,
-//           distanceFilter: 10, // Update location every 10 meters
-//         ),
-//       ).listen((Position newPosition) {
-//         setState(() {
-//           myCurrentLocation = LatLng(newPosition.latitude, newPosition.longitude);
-//           markers.clear();
-//           markers.add(
-//             Marker(
-//               markerId: const MarkerId("CurrentLocation"),
-//               icon: BitmapDescriptor.defaultMarker,
-//               position: myCurrentLocation,
-//             ),
-//           );
-//         });
-
-//         // Move camera when location updates
-//         mapController?.animateCamera(
-//           CameraUpdate.newLatLng(myCurrentLocation),
-//         );
-//       });
-//     } catch (e) {
-//       print("Error getting location: $e");
-//     }
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       body: GoogleMap(
-//         initialCameraPosition: CameraPosition(
-//           target: myCurrentLocation,
-//           zoom: 15,
-//         ),
-//         markers: markers, 
-//         myLocationEnabled: true, 
-//         myLocationButtonEnabled: true, 
-//         onMapCreated: (GoogleMapController controller) {
-//           mapController = controller; // Assign controller
-//         },
-//       ),
-//     );
-//   }
-// }

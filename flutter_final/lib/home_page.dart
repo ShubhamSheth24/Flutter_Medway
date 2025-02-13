@@ -94,7 +94,7 @@ class HomePage extends StatelessWidget {
 
             // Search Bar Section
             Padding(
-              padding: defaultPadding().copyWith(top: 20),
+              padding: defaultPadding().copyWith(top: 20.00),
               child: TextField(
                 decoration: InputDecoration(
                   hintText: 'Search doctor, drugs, articles...',
@@ -111,7 +111,7 @@ class HomePage extends StatelessWidget {
 
             // Categories Section
             Padding(
-              padding: defaultPadding().copyWith(top: 20),
+              padding: defaultPadding().copyWith(top: 20.00),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -146,7 +146,7 @@ class HomePage extends StatelessWidget {
 
             // Health Articles Section
             Padding(
-              padding: defaultPadding().copyWith(top: 30),
+              padding: defaultPadding().copyWith(top: 30.00),
               child: const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
