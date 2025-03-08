@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_final/Services/medicine_reminder.dart';
 import 'package:flutter_final/Widgets/custom_bottom_nav_bar.dart';
 import 'package:flutter_final/appointment_page.dart';
 import 'package:flutter_final/book_appointment.dart';
@@ -18,7 +19,8 @@ import 'package:flutter_final/Screens/medicine_screen.dart';
 import 'package:flutter_final/articles.dart';
 import 'package:flutter_final/search.dart';
 import 'package:flutter_final/widgets.dart';
-import 'package:image_picker/image_picker.dart';
+
+defaultPadding() => const EdgeInsets.symmetric(horizontal: 20);
 
 class HomePage extends StatefulWidget {
   final String userName;
@@ -45,15 +47,11 @@ class _HomePageState extends State<HomePage>
   void initState() {
     super.initState();
     _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 500),
-    );
-    _fadeAnimation = CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeInOut,
-    );
+        vsync: this, duration: const Duration(milliseconds: 500));
+    _fadeAnimation =
+        CurvedAnimation(parent: _animationController, curve: Curves.easeInOut);
     _animationController.forward();
-    _fetchUserData();
+    _listenToUserData();
     _initializeFilteredItems();
   }
 
@@ -63,28 +61,33 @@ class _HomePageState extends State<HomePage>
     super.dispose();
   }
 
-  Future<void> _fetchUserData() async {
-    try {
-      User? user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        DocumentSnapshot userDoc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .get();
-
-        if (userDoc.exists) {
+  void _listenToUserData() {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .snapshots()
+          .listen((snapshot) {
+        if (snapshot.exists) {
           setState(() {
-            userName = userDoc['name'] ?? widget.userName;
-            _profileImageUrl = userDoc['profileImageUrl'] as String?;
+            userName = snapshot['name'] ?? widget.userName;
+            _profileImageUrl = snapshot['profileImageUrl'] as String?;
+            _isLoading = false;
+          });
+        } else {
+          setState(() {
+            userName = widget.userName;
             _isLoading = false;
           });
         }
-      }
-    } catch (e) {
+      }, onError: (e) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error loading user data: $e')));
+      });
+    } else {
       setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error loading user data: $e')),
-      );
     }
   }
 
@@ -140,7 +143,6 @@ class _HomePageState extends State<HomePage>
   Widget _buildHomeView() {
     return RefreshIndicator(
       onRefresh: () async {
-        await _fetchUserData();
         _initializeFilteredItems();
       },
       child: SingleChildScrollView(
@@ -153,9 +155,8 @@ class _HomePageState extends State<HomePage>
               decoration: BoxDecoration(
                 color: Colors.blue.shade50,
                 borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(40),
-                  bottomRight: Radius.circular(40),
-                ),
+                    bottomLeft: Radius.circular(40),
+                    bottomRight: Radius.circular(40)),
               ),
               child: Padding(
                 padding: defaultPadding(),
@@ -171,8 +172,8 @@ class _HomePageState extends State<HomePage>
                             radius: 30,
                             backgroundImage: _profileImageUrl != null
                                 ? NetworkImage(_profileImageUrl!)
-                                    as ImageProvider
-                                : const AssetImage('assets/user.jpg'),
+                                : const AssetImage('assets/user.jpg')
+                                    as ImageProvider,
                             backgroundColor: Colors.grey[200],
                           ),
                         ),
@@ -187,13 +188,12 @@ class _HomePageState extends State<HomePage>
                                     color: Colors.black87)),
                             const SizedBox(height: 5),
                             FadeTransition(
-                              opacity: _fadeAnimation,
-                              child: Text(userName,
-                                  style: const TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.black)),
-                            ),
+                                opacity: _fadeAnimation,
+                                child: Text(userName,
+                                    style: const TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black))),
                             const SizedBox(height: 5),
                             const Text('How is it going today?',
                                 style: TextStyle(
@@ -216,9 +216,8 @@ class _HomePageState extends State<HomePage>
                   filled: true,
                   fillColor: Colors.grey.shade200,
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(15),
-                    borderSide: BorderSide.none,
-                  ),
+                      borderRadius: BorderRadius.circular(15),
+                      borderSide: BorderSide.none),
                 ),
               ),
             ),
@@ -236,33 +235,30 @@ class _HomePageState extends State<HomePage>
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             GestureDetector(
-                              onTap: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (context) =>
-                                          const DoctorListScreen())),
-                              child: const CategoryCard(
-                                  icon: Icons.person, label: 'Top Doctors'),
-                            ),
+                                onTap: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (context) =>
+                                            const DoctorListScreen())),
+                                child: const CategoryCard(
+                                    icon: Icons.person, label: 'Top Doctors')),
                             GestureDetector(
-                              onTap: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (context) => PharmacyPage())),
-                              child: const CategoryCard(
-                                  icon: Icons.local_pharmacy,
-                                  label: 'Pharmacy'),
-                            ),
+                                onTap: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (context) => PharmacyPage())),
+                                child: const CategoryCard(
+                                    icon: Icons.local_pharmacy,
+                                    label: 'Pharmacy')),
                             GestureDetector(
-                              onTap: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (context) =>
-                                          const AmbulanceBookingScreen())),
-                              child: const CategoryCard(
-                                  icon: Icons.local_hospital,
-                                  label: 'Ambulance'),
-                            ),
+                                onTap: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (context) =>
+                                            const AmbulanceBookingScreen())),
+                                child: const CategoryCard(
+                                    icon: Icons.local_hospital,
+                                    label: 'Ambulance')),
                           ],
                         ),
                         Padding(
@@ -279,39 +275,33 @@ class _HomePageState extends State<HomePage>
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold)),
                                   GestureDetector(
-                                    onTap: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              const AllArticlesPage(),
-                                        ),
-                                      );
-                                    },
-                                    child: const Text('See all',
-                                        style: TextStyle(
-                                            fontSize: 14, color: Colors.blue)),
-                                  ),
+                                      onTap: () => Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                              builder: (context) =>
+                                                  const AllArticlesPage())),
+                                      child: const Text('See all',
+                                          style: TextStyle(
+                                              fontSize: 14,
+                                              color: Colors.blue))),
                                 ],
                               ),
                               const SizedBox(height: 15),
                               ...articles
                                   .take(3)
                                   .map((article) => GestureDetector(
-                                        onTap: () {
-                                          Navigator.push(
+                                        onTap: () => Navigator.push(
                                             context,
                                             MaterialPageRoute(
-                                              builder: (context) =>
-                                                  ArticleDetailPage(
-                                                      article: article),
-                                            ),
-                                          );
-                                        },
+                                                builder: (context) =>
+                                                    ArticleDetailPage(
+                                                        article: article))),
                                         child: HealthArticleCard(
                                           title: article.title,
                                           date: article.date,
                                           readTime: article.readTime,
+                                          imagePath: article
+                                              .imagePath, // Added imagePath
                                         ),
                                       ))
                                   .toList(),
@@ -323,14 +313,11 @@ class _HomePageState extends State<HomePage>
                   : _filteredItems.isEmpty
                       ? const Center(
                           child: Padding(
-                            padding: EdgeInsets.all(20.0),
-                            child: Text(
-                              'No Results Found',
-                              style: TextStyle(
-                                  fontSize: 18, fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                        )
+                              padding: EdgeInsets.all(20.0),
+                              child: Text('No Results Found',
+                                  style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold))))
                       : ListView.builder(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
@@ -341,19 +328,18 @@ class _HomePageState extends State<HomePage>
                               case 'article':
                                 final article = item.data as Article;
                                 return GestureDetector(
-                                  onTap: () {
-                                    Navigator.push(
+                                  onTap: () => Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (context) =>
-                                            ArticleDetailPage(article: article),
-                                      ),
-                                    );
-                                  },
+                                          builder: (context) =>
+                                              ArticleDetailPage(
+                                                  article: article))),
                                   child: HealthArticleCard(
                                     title: article.title,
                                     date: article.date,
                                     readTime: article.readTime,
+                                    imagePath:
+                                        article.imagePath, // Added imagePath
                                   ),
                                 );
                               case 'doctor':
@@ -364,22 +350,17 @@ class _HomePageState extends State<HomePage>
                                   title: Text(doctor.name),
                                   subtitle: Text(doctor.specialty),
                                   trailing: Text(doctor.distance),
-                                  onTap: () {
-                                    Navigator.push(
+                                  onTap: () => Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (context) =>
-                                            BookAppointmentScreen(
-                                          doctor: {
-                                            'name': doctor.name,
-                                            'specialty': doctor.specialty,
-                                            'rating': doctor.rating.toString(),
-                                            'distance': doctor.distance,
-                                          },
-                                        ),
-                                      ),
-                                    );
-                                  },
+                                          builder: (context) =>
+                                              BookAppointmentScreen(doctor: {
+                                                'name': doctor.name,
+                                                'specialty': doctor.specialty,
+                                                'rating':
+                                                    doctor.rating.toString(),
+                                                'distance': doctor.distance
+                                              }))),
                                 );
                               case 'medicine':
                               case 'injection':
@@ -391,15 +372,11 @@ class _HomePageState extends State<HomePage>
                                   title: Text(product['name']),
                                   subtitle: Text(
                                       '${product['quantity']} - \$${product['price']}'),
-                                  onTap: () {
-                                    Navigator.push(
+                                  onTap: () => Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (context) =>
-                                            MedicineScreen(product: product),
-                                      ),
-                                    );
-                                  },
+                                          builder: (context) => MedicineScreen(
+                                              product: product))),
                                 );
                               default:
                                 return const SizedBox.shrink();
@@ -418,6 +395,8 @@ class _HomePageState extends State<HomePage>
   Widget _buildNotificationsView() => const Center(
       child: Text('Notifications Page', style: TextStyle(fontSize: 20)));
 
+  Widget _buildRemindersView() => const MedicineReminder();
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -427,28 +406,24 @@ class _HomePageState extends State<HomePage>
           padding: const EdgeInsets.only(top: 40.0),
           child: _isLoading
               ? const Center(child: CircularProgressIndicator())
-              : _currentIndex == 3
-                  ? ProfilePage(userName: userName)
-                  : IndexedStack(
-                      index: _currentIndex,
-                      children: [
-                        _buildHomeView(),
-                        _buildReportsView(),
-                        _buildNotificationsView(),
-                      ],
-                    ),
+              : IndexedStack(
+                  index: _currentIndex,
+                  children: [
+                    _buildHomeView(),
+                    _buildReportsView(),
+                    _buildNotificationsView(),
+                    _buildRemindersView(),
+                    ProfilePage(userName: userName),
+                  ],
+                ),
         ),
         bottomNavigationBar: CustomBottomNavBar(
           currentIndex: _currentIndex,
-          onTap: (index) {
-            setState(() {
-              if (_currentIndex == index && index == 0) {
-                _fetchUserData();
-                _initializeFilteredItems();
-              }
-              _currentIndex = index;
-            });
-          },
+          onTap: (index) => setState(() {
+            if (_currentIndex == index && index == 0)
+              _initializeFilteredItems();
+            _currentIndex = index;
+          }),
         ),
       ),
     );

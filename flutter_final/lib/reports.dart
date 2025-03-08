@@ -3,7 +3,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:flutter_final/health_info_form.dart';
-import 'package:flutter_final/home_page.dart';
 import 'package:flutter_final/widgets.dart';
 
 class ReportsContent extends StatefulWidget {
@@ -185,7 +184,6 @@ class _ReportsContentState extends State<ReportsContent> {
             in service.characteristics) {
           debugPrint(
               "Characteristic UUID: ${characteristic.uuid}, Properties: notify=${characteristic.properties.notify}, read=${characteristic.properties.read}, write=${characteristic.properties.write}");
-          // Try standard heart rate UUID
           if (characteristic.uuid.toString() ==
                   "00002a37-0000-1000-8000-00805f9b34fb" &&
               characteristic.properties.notify) {
@@ -195,7 +193,7 @@ class _ReportsContentState extends State<ReportsContent> {
             debugPrint("Subscribed to standard heart rate notifications");
             characteristic.value.listen((value) {
               if (value.isNotEmpty) {
-                int hr = value[1]; // Heart rate typically second byte
+                int hr = value[1];
                 setState(() {
                   _heartRate = hr.toString();
                   _isFetching = false;
@@ -206,9 +204,7 @@ class _ReportsContentState extends State<ReportsContent> {
                 debugPrint("Received empty value from 2a37");
               }
             });
-          }
-          // Try custom UUID ffd1 for Crossbeats
-          else if (characteristic.uuid.toString() ==
+          } else if (characteristic.uuid.toString() ==
                   "0000ffd1-0000-1000-8000-00805f9b34fb" &&
               characteristic.properties.notify) {
             debugPrint(
@@ -217,7 +213,7 @@ class _ReportsContentState extends State<ReportsContent> {
             debugPrint("Subscribed to custom notifications (ffd1)");
             characteristic.value.listen((value) {
               if (value.isNotEmpty) {
-                int hr = value[1]; // Guess second byte, adjust if needed
+                int hr = value[1];
                 setState(() {
                   _heartRate = hr.toString();
                   _isFetching = false;

@@ -53,6 +53,15 @@ class CustomBottomNavBar extends StatelessWidget {
           icon: AnimatedScale(
             scale: currentIndex == 3 ? 1.1 : 1.0,
             duration: const Duration(milliseconds: 200),
+            child: const Icon(Icons.medication),
+          ),
+          label: 'Reminders',
+          tooltip: 'Medicine Reminders',
+        ),
+        BottomNavigationBarItem(
+          icon: AnimatedScale(
+            scale: currentIndex == 4 ? 1.1 : 1.0,
+            duration: const Duration(milliseconds: 200),
             child: const Icon(Icons.person),
           ),
           label: 'Profile',

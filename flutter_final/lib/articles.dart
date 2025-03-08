@@ -5,12 +5,14 @@ class Article {
   final String date;
   final String readTime;
   final String content;
+  final String imagePath; // Added for unique images
 
   Article({
     required this.title,
     required this.date,
     required this.readTime,
     required this.content,
+    required this.imagePath, // New required field
   });
 }
 
@@ -21,6 +23,7 @@ List<Article> articles = [
     readTime: '5 min read',
     content:
         'Fruits are nature\'s wonderful gift to mankind; they are an absolute feast to our sight and provide numerous health benefits. This article explores 25 of the healthiest fruits recommended by nutritionists, including apples, bananas, berries, and more...',
+    imagePath: 'assets/article1.jpg', // Unique image
   ),
   Article(
     title: 'The Impact of COVID-19 on Healthcare Systems',
@@ -28,6 +31,7 @@ List<Article> articles = [
     readTime: '5 min read',
     content:
         'The COVID-19 pandemic has dramatically altered healthcare systems worldwide. This article discusses the challenges faced, adaptations made, and long-term impacts on medical infrastructure and patient care...',
+    imagePath: 'assets/article2.jpg',
   ),
   Article(
     title: 'Understanding Mental Health: Breaking the Stigma',
@@ -35,6 +39,7 @@ List<Article> articles = [
     readTime: '6 min read',
     content:
         'Mental health is as important as physical health, yet it remains shrouded in stigma. This article delves into common mental health conditions, their symptoms, and ways to seek help while breaking down societal barriers...',
+    imagePath: 'assets/article3.jpg',
   ),
   Article(
     title: 'The Benefits of Regular Exercise on Heart Health',
@@ -42,6 +47,7 @@ List<Article> articles = [
     readTime: '4 min read',
     content:
         'Exercise is a cornerstone of a healthy lifestyle, especially for your heart. Learn how regular physical activity can reduce the risk of cardiovascular diseases, improve circulation, and boost overall well-being...',
+    imagePath: 'assets/article4.jpg',
   ),
   Article(
     title: 'Nutrition Tips for Managing Diabetes',
@@ -49,6 +55,7 @@ List<Article> articles = [
     readTime: '5 min read',
     content:
         'Managing diabetes effectively requires a balanced diet. This article provides practical nutrition tips, including the best foods to stabilize blood sugar, portion control strategies, and meal planning advice...',
+    imagePath: 'assets/article5.jpg',
   ),
   Article(
     title: 'Sleep and Its Impact on Your Immune System',
@@ -56,6 +63,7 @@ List<Article> articles = [
     readTime: '5 min read',
     content:
         'Quality sleep is crucial for a strong immune system. Discover how sleep affects your body\'s ability to fight infections, the science behind sleep cycles, and tips for improving your sleep hygiene...',
+    imagePath: 'assets/article6.jpg',
   ),
   Article(
     title: 'The Rise of Telemedicine: Healthcare in the Digital Age',
@@ -63,6 +71,7 @@ List<Article> articles = [
     readTime: '6 min read',
     content:
         'Telemedicine has transformed how we access healthcare. This article explores its growth, benefits like convenience and accessibility, and challenges such as technology barriers and privacy concerns...',
+    imagePath: 'assets/article7.jpg',
   ),
 ];
 
@@ -70,12 +79,14 @@ class HealthArticleCard extends StatelessWidget {
   final String title;
   final String readTime;
   final String date;
+  final String imagePath; // Added for unique images
 
   const HealthArticleCard({
     super.key,
     required this.title,
     required this.readTime,
     required this.date,
+    required this.imagePath, // New required parameter
   });
 
   @override
@@ -89,9 +100,10 @@ class HealthArticleCard extends StatelessWidget {
             width: 70,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(10),
-              image: const DecorationImage(
-                  image: AssetImage('assets/health_article.jpg'),
-                  fit: BoxFit.cover),
+              image: DecorationImage(
+                image: AssetImage(imagePath), // Use unique image
+                fit: BoxFit.cover,
+              ),
             ),
           ),
           const SizedBox(width: 15),
@@ -99,15 +111,20 @@ class HealthArticleCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                        fontSize: 14, fontWeight: FontWeight.bold)),
+                Text(
+                  title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 const SizedBox(height: 5),
-                Text('$date • $readTime',
-                    style:
-                        TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                Text(
+                  '$date • $readTime',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                ),
               ],
             ),
           ),
@@ -137,8 +154,7 @@ class ArticleDetailPage extends StatelessWidget {
             children: [
               Text(
                 article.title,
-                style:
-                    const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               Text(
@@ -151,8 +167,8 @@ class ArticleDetailPage extends StatelessWidget {
                 width: double.infinity,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(10),
-                  image: const DecorationImage(
-                    image: AssetImage('assets/health_article.jpg'),
+                  image: DecorationImage(
+                    image: AssetImage(article.imagePath), // Use unique image here too
                     fit: BoxFit.cover,
                   ),
                 ),
@@ -199,6 +215,7 @@ class AllArticlesPage extends StatelessWidget {
                 title: article.title,
                 date: article.date,
                 readTime: article.readTime,
+                imagePath: article.imagePath, // Pass unique image
               ),
             );
           },

@@ -4,7 +4,7 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 class WatchConnector {
   BluetoothDevice? _connectedDevice;
   BluetoothCharacteristic? _heartRateCharacteristic;
-  ValueNotifier<String> heartRate = ValueNotifier<String>("97"); // Default value
+  ValueNotifier<String> heartRate = ValueNotifier<String>("97");
   bool _isFetching = false;
 
   WatchConnector() {
@@ -24,14 +24,12 @@ class WatchConnector {
     _isFetching = true;
     heartRate.value = "Scanning...";
 
-    // Start scanning for devices
     await FlutterBluePlus.startScan(timeout: const Duration(seconds: 10));
 
-    // Listen for scan results
     FlutterBluePlus.scanResults.listen((results) async {
       for (ScanResult result in results) {
         debugPrint("Found: ${result.device.name} (ID: ${result.device.id})");
-        if (result.device.name == "CB-ARMOUR") { // Filter for your watch
+        if (result.device.name == "CB-ARMOUR") {
           debugPrint("Attempting to connect to CB-ARMOUR");
           await _connectToDevice(result.device);
           break;
@@ -39,7 +37,6 @@ class WatchConnector {
       }
     });
 
-    // Stop scanning after timeout
     await Future.delayed(const Duration(seconds: 10), () {
       FlutterBluePlus.stopScan();
       if (_connectedDevice == null) {
@@ -55,14 +52,13 @@ class WatchConnector {
       _connectedDevice = device;
       debugPrint("Connected to ${device.name}");
 
-      // Discover services
       List<BluetoothService> services = await device.discoverServices();
       for (BluetoothService service in services) {
         debugPrint("Service found: ${service.uuid}");
-        if (service.uuid.toString() == "0000180d-0000-1000-8000-00805f9b34fb") { // Heart Rate Service
+        if (service.uuid.toString() == "0000180d-0000-1000-8000-00805f9b34fb") {
           for (BluetoothCharacteristic characteristic in service.characteristics) {
             debugPrint("Characteristic found: ${characteristic.uuid}");
-            if (characteristic.uuid.toString() == "00002a37-0000-1000-8000-00805f9b34fb") { // Heart Rate Measurement
+            if (characteristic.uuid.toString() == "00002a37-0000-1000-8000-00805f9b34fb") {
               _heartRateCharacteristic = characteristic;
               await characteristic.setNotifyValue(true);
               characteristic.value.listen((value) {
@@ -91,11 +87,11 @@ class WatchConnector {
 
   String _parseHeartRate(List<int> value) {
     if (value.isNotEmpty) {
-      bool is16Bit = (value[0] & 0x01) == 1; // Check flags for 16-bit format
+      bool is16Bit = (value[0] & 0x01) == 1;
       if (is16Bit && value.length >= 3) {
-        return ((value[2] << 8) + value[1]).toString(); // 16-bit heart rate
+        return ((value[2] << 8) + value[1]).toString();
       } else if (!is16Bit && value.length >= 2) {
-        return value[1].toString(); // 8-bit heart rate
+        return value[1].toString();
       }
     }
     return "N/A";
