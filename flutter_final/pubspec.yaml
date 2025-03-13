@@ -61,6 +61,7 @@ dependencies:
   url_launcher: ^6.3.1
   telephony:
     path: ./Telephony
+  flutter_typeahead: ^5.2.0
   
  
 

@@ -154,7 +154,8 @@ class ArticleDetailPage extends StatelessWidget {
             children: [
               Text(
                 article.title,
-                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                style:
+                    const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               Text(
@@ -168,7 +169,8 @@ class ArticleDetailPage extends StatelessWidget {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(10),
                   image: DecorationImage(
-                    image: AssetImage(article.imagePath), // Use unique image here too
+                    image: AssetImage(
+                        article.imagePath), // Use unique image here too
                     fit: BoxFit.cover,
                   ),
                 ),
