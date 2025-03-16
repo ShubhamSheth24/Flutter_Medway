@@ -1,1 +1,1 @@
-// const String razorpayKey = "rzp_test_AZBOQjLqeHohOx";
+const String razorpayKey = "rzp_test_AZBOQjLqeHohOx";

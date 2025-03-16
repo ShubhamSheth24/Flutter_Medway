@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_final/services/payment_service.dart';
 import 'package:flutter_final/models/medicine.dart';
-import 'package:flutter_final/utils/constrants.dart';
-import 'package:flutter_final/Screens/checkout_screen.dart'; // Use single import
+import 'package:flutter_final/Screens/checkout_screen.dart'; // Capital 'S' for Screens
 
 class CartItem {
   final Map<String, dynamic> product;
@@ -34,13 +32,19 @@ class Cart with ChangeNotifier {
   void addToCart(Map<String, dynamic> product) {
     final existingItemIndex =
         _items.indexWhere((item) => item.product['id'] == product['id']);
-    final quantityToAdd = product['quantity'] is int
-        ? product['quantity'] as int
-        : 1; // Default to 1 if not int
+    final maxStock = _parseQuantity(product['quantity']);
+    final quantityToAdd =
+        product['quantity'] is int ? product['quantity'] as int : 1;
+
     if (existingItemIndex != -1) {
-      _items[existingItemIndex].quantity += quantityToAdd;
+      final newQuantity = _items[existingItemIndex].quantity + quantityToAdd;
+      if (newQuantity <= maxStock) {
+        _items[existingItemIndex].quantity = newQuantity;
+      }
     } else {
-      _items.add(CartItem(product: product, quantity: quantityToAdd));
+      if (quantityToAdd <= maxStock) {
+        _items.add(CartItem(product: product, quantity: quantityToAdd));
+      }
     }
     notifyListeners();
   }
@@ -67,6 +71,14 @@ class Cart with ChangeNotifier {
     _items.clear();
     notifyListeners();
   }
+
+  int _parseQuantity(dynamic quantity) {
+    if (quantity is int) return quantity;
+    if (quantity is String) {
+      return int.tryParse(quantity.split(' ')[0]) ?? 1;
+    }
+    return 1;
+  }
 }
 
 class CartScreen extends StatefulWidget {
@@ -76,9 +88,26 @@ class CartScreen extends StatefulWidget {
   _CartScreenState createState() => _CartScreenState();
 }
 
-class _CartScreenState extends State<CartScreen> {
+class _CartScreenState extends State<CartScreen>
+    with SingleTickerProviderStateMixin {
   String paymentMethod = 'VISA';
   bool isDropdownVisible = false;
+  late AnimationController _animationController;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -131,104 +160,131 @@ class _CartScreenState extends State<CartScreen> {
                             final price = double.tryParse(
                                     item.product['price'].toString()) ??
                                 0.0;
-                            return Card(
-                              elevation: 3,
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(15)),
-                              margin: const EdgeInsets.only(bottom: 12),
-                              child: Padding(
-                                padding: const EdgeInsets.all(12),
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(10),
-                                      child: Image.asset(
-                                        item.product['imageUrl'] ??
-                                            'assets/placeholder.png',
-                                        width: 60,
-                                        height: 60,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (_, __, ___) =>
-                                            const Icon(
-                                                Icons.image_not_supported,
-                                                size: 60),
+                            final maxStock =
+                                cart._parseQuantity(item.product['quantity']);
+                            return Dismissible(
+                              key: Key(item.product['id'].toString()),
+                              direction: DismissDirection.endToStart,
+                              onDismissed: (_) => cart.deleteItem(item.product),
+                              background: Container(
+                                color: Colors.redAccent,
+                                alignment: Alignment.centerRight,
+                                padding: const EdgeInsets.only(right: 20),
+                                child: const Icon(Icons.delete,
+                                    color: Colors.white),
+                              ),
+                              child: Card(
+                                elevation: 3,
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(15)),
+                                margin: const EdgeInsets.symmetric(vertical: 8),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(12),
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(10),
+                                        child: Image.asset(
+                                          item.product['imageUrl'] ??
+                                              'assets/placeholder.png',
+                                          width: 60,
+                                          height: 60,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (_, __, ___) =>
+                                              const Icon(
+                                                  Icons.image_not_supported,
+                                                  size: 60),
+                                        ),
                                       ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Column(
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              item.product['name'] ??
+                                                  'Unnamed Item',
+                                              style: const TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.bold),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              'Stock: ${item.product['quantity']?.toString() ?? 'N/A'}',
+                                              style: TextStyle(
+                                                  fontSize: 14,
+                                                  color: Colors.grey[600]),
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Row(
+                                              children: [
+                                                _buildIconButton(
+                                                  icon: Icons.remove,
+                                                  onTap: item.quantity > 1
+                                                      ? () =>
+                                                          cart.removeFromCart(
+                                                              item.product)
+                                                      : null,
+                                                ),
+                                                const SizedBox(width: 8),
+                                                AnimatedSwitcher(
+                                                  duration: const Duration(
+                                                      milliseconds: 200),
+                                                  transitionBuilder:
+                                                      (child, animation) =>
+                                                          ScaleTransition(
+                                                              scale: animation,
+                                                              child: child),
+                                                  child: Text(
+                                                    '${item.quantity}',
+                                                    key:
+                                                        ValueKey(item.quantity),
+                                                    style: const TextStyle(
+                                                        fontSize: 16,
+                                                        fontWeight:
+                                                            FontWeight.bold),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 8),
+                                                _buildIconButton(
+                                                  icon: Icons.add,
+                                                  color: Colors.blue,
+                                                  onTap: item.quantity <
+                                                          maxStock
+                                                      ? () => cart.addToCart(
+                                                          item.product)
+                                                      : null,
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Column(
                                         crossAxisAlignment:
-                                            CrossAxisAlignment.start,
+                                            CrossAxisAlignment.end,
                                         children: [
+                                          IconButton(
+                                            icon: const Icon(
+                                                Icons.delete_outline,
+                                                color: Colors.redAccent),
+                                            onPressed: () =>
+                                                cart.deleteItem(item.product),
+                                          ),
                                           Text(
-                                            item.product['name'] ??
-                                                'Unnamed Item',
+                                            '₹${(price * item.quantity).toStringAsFixed(2)}',
                                             style: const TextStyle(
                                                 fontSize: 16,
-                                                fontWeight: FontWeight.bold),
-                                          ),
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            'Stock: ${item.product['quantity']?.toString() ?? 'N/A'}',
-                                            style: TextStyle(
-                                                fontSize: 14,
-                                                color: Colors.grey[600]),
-                                          ),
-                                          const SizedBox(height: 8),
-                                          Row(
-                                            children: [
-                                              _buildIconButton(
-                                                icon: Icons.remove,
-                                                onTap: () =>
-                                                    cart.removeFromCart(
-                                                        item.product),
-                                              ),
-                                              const SizedBox(width: 8),
-                                              AnimatedSwitcher(
-                                                duration: const Duration(
-                                                    milliseconds: 200),
-                                                child: Text(
-                                                  '${item.quantity}',
-                                                  key: ValueKey(item.quantity),
-                                                  style: const TextStyle(
-                                                      fontSize: 16,
-                                                      fontWeight:
-                                                          FontWeight.bold),
-                                                ),
-                                              ),
-                                              const SizedBox(width: 8),
-                                              _buildIconButton(
-                                                icon: Icons.add,
-                                                color: Colors.blue,
-                                                onTap: () => cart
-                                                    .addToCart(item.product),
-                                              ),
-                                            ],
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.black87),
                                           ),
                                         ],
                                       ),
-                                    ),
-                                    Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.end,
-                                      children: [
-                                        IconButton(
-                                          icon: const Icon(Icons.delete_outline,
-                                              color: Colors.redAccent),
-                                          onPressed: () =>
-                                              cart.deleteItem(item.product),
-                                        ),
-                                        Text(
-                                          '₹${(price * item.quantity).toStringAsFixed(2)}',
-                                          style: const TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.black87),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ),
                             );
@@ -244,7 +300,13 @@ class _CartScreenState extends State<CartScreen> {
                     ],
                   ),
                 ),
-                if (isDropdownVisible) _buildPaymentDropdown(),
+                AnimatedPositioned(
+                  duration: const Duration(milliseconds: 300),
+                  bottom: isDropdownVisible ? 100 : -200,
+                  left: 16,
+                  right: 16,
+                  child: _buildPaymentDropdown(),
+                ),
               ],
             ),
     );
@@ -253,7 +315,7 @@ class _CartScreenState extends State<CartScreen> {
   Widget _buildIconButton(
       {required IconData icon,
       Color color = Colors.grey,
-      required VoidCallback onTap}) {
+      VoidCallback? onTap}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -261,9 +323,10 @@ class _CartScreenState extends State<CartScreen> {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           border: Border.all(color: color, width: 1.5),
-          color: Colors.white,
+          color: onTap != null ? Colors.white : Colors.grey[200],
         ),
-        child: Icon(icon, size: 20, color: color),
+        child: Icon(icon,
+            size: 20, color: onTap != null ? color : Colors.grey[400]),
       ),
     );
   }
@@ -360,25 +423,20 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   Widget _buildPaymentDropdown() {
-    return Positioned(
-      bottom: 100,
-      left: 16,
-      right: 16,
-      child: Material(
-        elevation: 8,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-              color: Colors.white, borderRadius: BorderRadius.circular(12)),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildDropdownItem('VISA', Icons.credit_card),
-              _buildDropdownItem('MasterCard', Icons.credit_card),
-              _buildDropdownItem('Cash on Delivery', Icons.local_shipping),
-            ],
-          ),
+    return Material(
+      elevation: 8,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+            color: Colors.white, borderRadius: BorderRadius.circular(12)),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildDropdownItem('VISA', Icons.credit_card),
+            _buildDropdownItem('MasterCard', Icons.credit_card),
+            _buildDropdownItem('Cash on Delivery', Icons.local_shipping),
+          ],
         ),
       ),
     );
@@ -409,50 +467,36 @@ class _CartScreenState extends State<CartScreen> {
       width: double.infinity,
       child: ElevatedButton(
         onPressed: () {
+          print('Checkout button pressed'); // Debug
           if (cart.items.isNotEmpty) {
             try {
-              // Validate cart items before navigation
+              print('Cart items: ${cart.items.length}'); // Debug
               final medicines = cart.items
                   .map((item) => Medicine(
                         name: item.product['name'] ?? 'Unnamed Item',
-                        price: double.tryParse(item.product['price'].toString()) ??
-                            0.0,
+                        price:
+                            double.tryParse(item.product['price'].toString()) ??
+                                0.0,
                         imageUrl: item.product['imageUrl'] ?? '',
                       ))
-                  .where((medicine) =>
-                      medicine.name.isNotEmpty && medicine.price >= 0)
                   .toList();
 
-              if (medicines.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text(
-                        'Invalid cart items. Please check your cart.'),
-                    backgroundColor: Colors.red,
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
+              print(
+                  'Navigating to CheckoutScreen with ${medicines.length} items'); // Debug
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CheckoutScreen(
+                    medicines: medicines,
+                    totalAmount: cart.total,
                   ),
-                );
-                return;
-              }
-
-              // Log before navigation for debugging
-              print('Navigating to CheckoutScreen with medicines: $medicines, total: ${cart.total}');
-
-              // Navigator.push(
-              //   context,
-              //   MaterialPageRoute(
-              //     builder: (_) => CheckoutScreen(
-              //       medicines: medicines,
-              //       totalAmount: cart.total,
-              //     ),
-              //   ),
-              // ).then((value) {
-              //   // Handle return from CheckoutScreen if needed (e.g., clear cart)
-              //   print('Returned from CheckoutScreen: $value');
-              // });
+                ),
+              ).then((value) {
+                print('Returned from CheckoutScreen: $value'); // Debug
+                if (value == true) cart.clearCart();
+              });
             } catch (e) {
+              print('Error navigating to checkout: $e'); // Debug
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text('Error navigating to checkout: $e'),
@@ -462,9 +506,9 @@ class _CartScreenState extends State<CartScreen> {
                       borderRadius: BorderRadius.circular(12)),
                 ),
               );
-              print('Checkout error details: $e');
             }
           } else {
+            print('Cart is empty'); // Debug
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: const Text('Cart is empty! Add items to proceed.'),

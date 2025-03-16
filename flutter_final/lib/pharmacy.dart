@@ -6,6 +6,8 @@ import 'category_page.dart';
 import 'cart.dart';
 
 class PharmacyPage extends StatefulWidget {
+  const PharmacyPage({super.key});
+
   @override
   _PharmacyPageState createState() => _PharmacyPageState();
 }
@@ -26,11 +28,15 @@ class _PharmacyPageState extends State<PharmacyPage> {
     injections = products
         .where((product) => product['category'] == 'Injections')
         .toList();
-
     filteredMedicines = medicines;
     filteredInjections = injections;
-
     _searchController.addListener(_filterProducts);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   void _filterProducts() {
@@ -46,13 +52,24 @@ class _PharmacyPageState extends State<PharmacyPage> {
   }
 
   void _addToCart(BuildContext context, Map<String, dynamic> product) {
-    Provider.of<Cart>(context, listen: false).addToCart(product);
+    final maxStock = _parseQuantity(product["quantity"]);
+    final cart = Provider.of<Cart>(context, listen: false);
+    final existingItem = cart.items.firstWhere(
+        (item) => item.product['id'] == product['id'],
+        orElse: () => CartItem(product: product, quantity: 0));
+    if (existingItem.quantity >= maxStock) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Stock limit reached!'), backgroundColor: Colors.red),
+      );
+      return;
+    }
 
-    ScaffoldMessenger.of(context).clearSnackBars();
+    cart.addToCart(product);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('✅ ${product["name"]} added to the cart'),
-        backgroundColor: Colors.blue,
+        content: Text('✅ ${product["name"]} added to cart'),
+        backgroundColor: Colors.green,
         duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -61,31 +78,34 @@ class _PharmacyPageState extends State<PharmacyPage> {
     );
   }
 
+  int _parseQuantity(String? quantityStr) {
+    if (quantityStr == null) return 0;
+    return int.tryParse(quantityStr.split(' ')[0]) ?? 0;
+  }
+
   Widget buildProductCard(BuildContext context, Map<String, dynamic> product) {
-    double price = double.tryParse(product["price"]) ?? 0.0;
+    double price = double.tryParse(product["price"].toString()) ?? 0.0;
+    final maxStock = _parseQuantity(product["quantity"]);
 
     return GestureDetector(
       onTap: () {
         Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => MedicineScreen(product: product),
-          ),
-        );
+            context,
+            MaterialPageRoute(
+                builder: (context) => MedicineScreen(product: product)));
       },
-      child: Card(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.only(right: 12.0, bottom: 16.0),
-        elevation: 0,
-        color: Colors.white,
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.withOpacity(0.3), width: 1),
-          ),
-          width: 140,
-          child: Padding(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeInOut,
+        transform: Matrix4.identity()..scale(maxStock > 0 ? 1.0 : 0.95),
+        child: Card(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.only(right: 12.0, bottom: 16.0),
+          elevation: 2,
+          color: maxStock > 0 ? Colors.white : Colors.grey[200],
+          child: Container(
+            width: 140,
             padding: const EdgeInsets.all(8.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -95,9 +115,8 @@ class _PharmacyPageState extends State<PharmacyPage> {
                   width: double.infinity,
                   decoration: BoxDecoration(
                     image: DecorationImage(
-                      image: AssetImage(product["imageUrl"]),
-                      fit: BoxFit.contain,
-                    ),
+                        image: AssetImage(product["imageUrl"]),
+                        fit: BoxFit.contain),
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
@@ -111,7 +130,9 @@ class _PharmacyPageState extends State<PharmacyPage> {
                 ),
                 Text(
                   product["quantity"],
-                  style: const TextStyle(color: Colors.grey, fontSize: 12),
+                  style: TextStyle(
+                      color: maxStock > 0 ? Colors.grey : Colors.red,
+                      fontSize: 12),
                 ),
                 Expanded(
                   child: Row(
@@ -122,23 +143,21 @@ class _PharmacyPageState extends State<PharmacyPage> {
                         style: const TextStyle(
                             fontSize: 14, fontWeight: FontWeight.bold),
                       ),
-                      Transform.translate(
-                        offset: const Offset(-6.0, -9.0),
-                        child: Transform.scale(
-                          scale: 1.4,
-                          alignment: Alignment.topLeft,
-                          child: IconButton(
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                            onPressed: () => _addToCart(context, product),
-                            icon: const Icon(Icons.add_circle,
-                                color: Colors.blue),
-                          ),
-                        ),
+                      IconButton(
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        onPressed: maxStock > 0
+                            ? () => _addToCart(context, product)
+                            : null,
+                        icon: Icon(Icons.add_circle,
+                            color: maxStock > 0 ? Colors.blue : Colors.grey),
                       ),
                     ],
                   ),
                 ),
+                if (maxStock <= 5 && maxStock > 0)
+                  const Text('Low Stock',
+                      style: TextStyle(color: Colors.orange, fontSize: 10)),
               ],
             ),
           ),
@@ -149,21 +168,17 @@ class _PharmacyPageState extends State<PharmacyPage> {
 
   @override
   Widget build(BuildContext context) {
-    // int totalCartQuantity = Provider.of<Cart>(context).items.fold(
-    //   0,
-    //   (total, item) => total + item.quantity,
-    // );
-    int totalCartQuantity = context.watch<Cart>().items.length;
+    int totalCartQuantity = context
+        .watch<Cart>()
+        .items
+        .fold(0, (total, item) => total + item.quantity);
 
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => Navigator.pop(context)),
         title: const Text('Pharmacy'),
         centerTitle: true,
         actions: [
@@ -178,21 +193,15 @@ class _PharmacyPageState extends State<PharmacyPage> {
                     child: CircleAvatar(
                       radius: 8,
                       backgroundColor: Colors.red,
-                      child: Text(
-                        '$totalCartQuantity',
-                        style:
-                            const TextStyle(fontSize: 12, color: Colors.white),
-                      ),
+                      child: Text('$totalCartQuantity',
+                          style: const TextStyle(
+                              fontSize: 12, color: Colors.white)),
                     ),
                   ),
               ],
             ),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const CartScreen()),
-              );
-            },
+            onPressed: () => Navigator.push(context,
+                MaterialPageRoute(builder: (context) => const CartScreen())),
           ),
         ],
       ),
@@ -208,9 +217,8 @@ class _PharmacyPageState extends State<PharmacyPage> {
                   hintText: 'Search drugs, category...',
                   prefixIcon: const Icon(Icons.search),
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(30.0),
-                    borderSide: BorderSide.none,
-                  ),
+                      borderRadius: BorderRadius.circular(30.0),
+                      borderSide: BorderSide.none),
                   filled: true,
                   fillColor: const Color(0xFFF0F5FD),
                 ),
@@ -234,20 +242,15 @@ class _PharmacyPageState extends State<PharmacyPage> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              title,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
+            Text(title,
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             TextButton(
-              onPressed: () {
-                Navigator.push(
+              onPressed: () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) =>
-                        CategoryPage(category: title, products: products),
-                  ),
-                );
-              },
+                      builder: (context) =>
+                          CategoryPage(category: title, products: products))),
               child:
                   const Text('See all', style: TextStyle(color: Colors.blue)),
             ),
@@ -259,13 +262,12 @@ class _PharmacyPageState extends State<PharmacyPage> {
                 child: Text('No items found.',
                     style: TextStyle(color: Colors.grey)))
             : SizedBox(
-                height: 180,
+                height: 200,
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
                   itemCount: products.length,
-                  itemBuilder: (context, index) {
-                    return buildProductCard(context, products[index]);
-                  },
+                  itemBuilder: (context, index) =>
+                      buildProductCard(context, products[index]),
                 ),
               ),
       ],
