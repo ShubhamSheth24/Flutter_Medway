@@ -62,6 +62,8 @@ dependencies:
   telephony:
     path: ./Telephony
   flutter_typeahead: ^5.2.0
+  # fl_chart: ^0.68.0
+  intl: ^0.20.2
   
  
 
