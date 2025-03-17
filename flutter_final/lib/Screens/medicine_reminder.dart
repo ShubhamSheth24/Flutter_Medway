@@ -63,7 +63,6 @@ class _MedicineReminderState extends State<MedicineReminder> {
           );
         }).toList();
 
-        // Load taken status
         for (var reminder in _reminders) {
           _takenStatus[reminder.id] = snapshot.docs.firstWhere(
                   (doc) => doc.id == reminder.id.toString())['taken'] ??
@@ -89,7 +88,7 @@ class _MedicineReminderState extends State<MedicineReminder> {
             .toList(),
         'isDaily': reminder.isDaily,
         'taken': _takenStatus[reminder.id] ?? false,
-        'timestamp': FieldValue.serverTimestamp(), // Add timestamp
+        'timestamp': FieldValue.serverTimestamp(),
       });
     }
   }
@@ -177,11 +176,14 @@ class _MedicineReminderState extends State<MedicineReminder> {
         builder: (context, setState) => AlertDialog(
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text('Add Medicine Reminder',
-              style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blueAccent)),
+          title: const Text(
+            'Add Medicine Reminder',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -190,24 +192,28 @@ class _MedicineReminderState extends State<MedicineReminder> {
                   controller: _medicineController,
                   decoration: InputDecoration(
                     labelText: 'Medicine Name',
+                    labelStyle:
+                        const TextStyle(fontSize: 16, color: Colors.grey),
                     border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12)),
                     filled: true,
-                    fillColor: Colors.grey[100],
+                    fillColor: Colors.grey.shade100,
                   ),
-                  style: const TextStyle(fontSize: 20),
+                  style: const TextStyle(fontSize: 16),
                 ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: _dosageController,
                   decoration: InputDecoration(
                     labelText: 'Dosage (e.g., 1 pill)',
+                    labelStyle:
+                        const TextStyle(fontSize: 16, color: Colors.grey),
                     border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12)),
                     filled: true,
-                    fillColor: Colors.grey[100],
+                    fillColor: Colors.grey.shade100,
                   ),
-                  style: const TextStyle(fontSize: 20),
+                  style: const TextStyle(fontSize: 16),
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton(
@@ -229,10 +235,11 @@ class _MedicineReminderState extends State<MedicineReminder> {
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12)),
                     padding: const EdgeInsets.symmetric(
-                        vertical: 14, horizontal: 20),
+                        vertical: 16, horizontal: 24),
+                    elevation: 2,
                   ),
                   child: const Text('Add Time',
-                      style: TextStyle(fontSize: 18, color: Colors.white)),
+                      style: TextStyle(fontSize: 16, color: Colors.white)),
                 ),
                 const SizedBox(height: 12),
                 Wrap(
@@ -240,11 +247,11 @@ class _MedicineReminderState extends State<MedicineReminder> {
                   children: _selectedTimes
                       .map((time) => Chip(
                             label: Text(time.format(context),
-                                style: const TextStyle(fontSize: 16)),
+                                style: const TextStyle(fontSize: 14)),
                             deleteIcon: const Icon(Icons.close, size: 18),
                             onDeleted: () =>
                                 setState(() => _selectedTimes.remove(time)),
-                            backgroundColor: Colors.blue[100],
+                            backgroundColor: Colors.blueAccent.withOpacity(0.1),
                           ))
                       .toList(),
                 ),
@@ -252,7 +259,8 @@ class _MedicineReminderState extends State<MedicineReminder> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Repeat Daily', style: TextStyle(fontSize: 18)),
+                    const Text('Repeat Daily',
+                        style: TextStyle(fontSize: 16, color: Colors.black87)),
                     Switch(
                       value: _isDaily,
                       onChanged: (value) => setState(() => _isDaily = value),
@@ -267,7 +275,7 @@ class _MedicineReminderState extends State<MedicineReminder> {
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: const Text('Cancel',
-                  style: TextStyle(fontSize: 18, color: Colors.grey)),
+                  style: TextStyle(fontSize: 16, color: Colors.grey)),
             ),
             ElevatedButton(
               onPressed: _addReminder,
@@ -276,10 +284,11 @@ class _MedicineReminderState extends State<MedicineReminder> {
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12)),
                 padding:
-                    const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+                    const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                elevation: 2,
               ),
               child: const Text('Save',
-                  style: TextStyle(fontSize: 18, color: Colors.white)),
+                  style: TextStyle(fontSize: 16, color: Colors.white)),
             ),
           ],
         ),
@@ -301,13 +310,22 @@ class _MedicineReminderState extends State<MedicineReminder> {
       child: Scaffold(
         backgroundColor: Colors.white,
         appBar: AppBar(
-          title: const Text('Medicine Reminders',
-              style: TextStyle(fontSize: 28, color: Colors.white)),
+          toolbarHeight: 56, // Matched with NotificationsDashboard
+          title: const Text(
+            'Medicine Reminders',
+            style: TextStyle(
+              fontSize: 22, // Matched with NotificationsDashboard
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          centerTitle: true,
           backgroundColor: Colors.blueAccent,
           elevation: 0,
-          centerTitle: true,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            icon: const Icon(Icons.arrow_back_ios,
+                size: 20,
+                color: Colors.white), // Matched with NotificationsDashboard
             onPressed: () {
               Navigator.of(context).pushReplacement(
                 MaterialPageRoute(
@@ -315,9 +333,18 @@ class _MedicineReminderState extends State<MedicineReminder> {
               );
             },
           ),
+          flexibleSpace: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.blueAccent, Colors.lightBlueAccent],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+          ),
         ),
         body: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(16),
           child: _reminders.isEmpty
               ? Center(
                   child: Column(
@@ -326,10 +353,10 @@ class _MedicineReminderState extends State<MedicineReminder> {
                       Icon(Icons.medication_outlined,
                           size: 80, color: Colors.grey[400]),
                       const SizedBox(height: 16),
-                      Text(
+                      const Text(
                         'No reminders set yet.\nTap + to add one!',
                         textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 20, color: Colors.grey[600]),
+                        style: TextStyle(fontSize: 16, color: Colors.grey),
                       ),
                     ],
                   ),
@@ -339,32 +366,45 @@ class _MedicineReminderState extends State<MedicineReminder> {
                   itemBuilder: (context, index) {
                     final reminder = _reminders[index];
                     return Card(
-                      elevation: 4,
+                      elevation: 2,
                       margin: const EdgeInsets.symmetric(vertical: 8),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12)),
+                      color: Colors.grey.shade50,
                       child: Padding(
-                        padding: const EdgeInsets.all(12.0),
+                        padding: const EdgeInsets.all(16),
                         child: Row(
                           children: [
                             Icon(Icons.medication,
-                                size: 40, color: Colors.blueAccent),
+                                size: 32, color: Colors.blueAccent),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(reminder.medicine,
-                                      style: const TextStyle(
-                                          fontSize: 22,
-                                          fontWeight: FontWeight.bold)),
                                   Text(
-                                      '${reminder.dosage} • ${reminder.times.map((t) => t.format(context)).join(', ')}',
-                                      style: const TextStyle(fontSize: 16)),
+                                    reminder.medicine,
+                                    style: const TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
                                   Text(
-                                      '(${reminder.isDaily ? "Daily" : "Weekly"})',
-                                      style: const TextStyle(
-                                          fontSize: 14, color: Colors.grey)),
+                                    '${reminder.dosage} • ${reminder.times.map((t) => t.format(context)).join(', ')}',
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                  Text(
+                                    '(${reminder.isDaily ? "Daily" : "Weekly"})',
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
                                   Row(
                                     children: [
                                       Checkbox(
@@ -380,14 +420,17 @@ class _MedicineReminderState extends State<MedicineReminder> {
                                         activeColor: Colors.green,
                                       ),
                                       const Text('Taken',
-                                          style: TextStyle(fontSize: 16)),
+                                          style: TextStyle(
+                                              fontSize: 16,
+                                              color: Colors.black87)),
                                     ],
                                   ),
                                 ],
                               ),
                             ),
                             IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.red),
+                              icon: const Icon(Icons.delete,
+                                  color: Colors.red, size: 24),
                               onPressed: () => setState(() {
                                 _reminders.removeAt(index);
                                 _takenStatus.remove(reminder.id);
@@ -404,10 +447,10 @@ class _MedicineReminderState extends State<MedicineReminder> {
         floatingActionButton: FloatingActionButton(
           onPressed: _showAddReminderDialog,
           backgroundColor: Colors.blueAccent,
-          child: const Icon(Icons.add, size: 30, color: Colors.white),
-          tooltip: 'Add Reminder',
+          child: const Icon(Icons.add, size: 28, color: Colors.white),
           shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          elevation: 2,
         ),
       ),
     );

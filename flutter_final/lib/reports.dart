@@ -202,7 +202,6 @@ class _ReportsContentState extends State<ReportsContent> {
                   debugPrint(
                       "Heart rate updated (2a37): $_heartRate at ${DateTime.now()}");
                 });
-                // Save to Firestore
                 FirebaseFirestore.instance
                     .collection('users')
                     .doc(FirebaseAuth.instance.currentUser!.uid)
@@ -229,7 +228,6 @@ class _ReportsContentState extends State<ReportsContent> {
                   debugPrint(
                       "Custom heart rate updated (ffd1): $_heartRate at ${DateTime.now()}");
                 });
-                // Save to Firestore
                 FirebaseFirestore.instance
                     .collection('users')
                     .doc(FirebaseAuth.instance.currentUser!.uid)
@@ -271,80 +269,140 @@ class _ReportsContentState extends State<ReportsContent> {
   Widget build(BuildContext context) {
     debugPrint(
         "ReportsContent - STEP 6: Building UI - Heart Rate: $_heartRate, Weight: $_weight, Blood Group: $_bloodGroup");
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          InfoCard(
-            title: "Heart Rate",
-            value: _isFetching ? "Fetching..." : _heartRate,
-            unit: "bpm",
-            icon: Icons.favorite,
-            color: Colors.blue.shade50,
+    return Scaffold(
+      backgroundColor: Colors.grey[100],
+      appBar: AppBar(
+        toolbarHeight: 56, // Kept smaller height
+        title: const Text(
+          'Health Reports',
+          style: TextStyle(
+            fontSize: 22, // Kept smaller font
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
           ),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              Expanded(
-                child: InfoCard(
-                  title: "Weight",
-                  value: _weight,
-                  unit: "lbs",
-                  icon: Icons.fitness_center,
-                  color: Colors.orange.shade50,
-                ),
-              ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: InfoCard(
-                  title: "Blood Group",
-                  value: _bloodGroup,
-                  unit: "",
-                  icon: Icons.bloodtype,
-                  color: Colors.pink.shade50,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 30),
-          const Text(
-            "Latest Reports",
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 12),
-          const ReportCard(title: "General Report", date: "Jul 10, 2023"),
-          const ReportCard(title: "General Report", date: "Jul 9, 2023"),
-          const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: () async {
-              debugPrint(
-                  "ReportsContent - STEP 7: Navigating to HealthInfoForm...");
-              await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) =>
-                      HealthInfoForm(userName: widget.userName),
-                ),
-              );
-              debugPrint(
-                  "ReportsContent - STEP 8: Returned from HealthInfoForm. Reloading data...");
-              await _loadHealthData();
-            },
-            child: const Text('Edit Health Info'),
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.blueAccent, // Base for gradient
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, size: 20, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Colors.blueAccent,
+                Colors.lightBlueAccent
+              ], // Lighter gradient
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
           ),
-          const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: _startBluetoothScan,
-            child: const Text('Retry Bluetooth Scan'),
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+        ),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 24),
+            InfoCard(
+              title: "Heart Rate",
+              value: _isFetching ? "Fetching..." : _heartRate,
+              unit: "bpm",
+              icon: Icons.monitor_heart,
+              color: Colors.blue.shade100, // Updated to match commented code
             ),
-          ),
-        ],
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: InfoCard(
+                    title: "Weight",
+                    value: _weight,
+                    unit: "lbs",
+                    icon: Icons.scale,
+                    color:
+                        Colors.grey.shade300, // Updated to match commented code
+                  ),
+                ),
+                const SizedBox(width: 20),
+                Expanded(
+                  child: InfoCard(
+                    title: "Blood Group",
+                    value: _bloodGroup,
+                    unit: "",
+                    icon: Icons.water_drop,
+                    color:
+                        Colors.red.shade200, // Updated to match commented code
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 30),
+            const Text(
+              "Latest Reports",
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: Colors.blueGrey,
+              ),
+            ),
+            const SizedBox(height: 12),
+            const ReportCard(title: "General Report", date: "Jul 10, 2023"),
+            const ReportCard(title: "General Report", date: "Jul 9, 2023"),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () async {
+                  debugPrint(
+                      "ReportsContent - STEP 7: Navigating to HealthInfoForm...");
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          HealthInfoForm(userName: widget.userName),
+                    ),
+                  );
+                  debugPrint(
+                      "ReportsContent - STEP 8: Returned from HealthInfoForm. Reloading data...");
+                  await _loadHealthData();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blueAccent,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text(
+                  'Edit Health Info',
+                  style: TextStyle(fontSize: 16, color: Colors.white),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _startBluetoothScan,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blueAccent,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text(
+                  'Retry Bluetooth Scan',
+                  style: TextStyle(fontSize: 16, color: Colors.white),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
