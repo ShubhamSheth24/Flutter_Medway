@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_final/models/user_model.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:flutter_final/signup.dart';
-import 'package:flutter_final/home_page.dart';
-import 'package:flutter_final/Services/forgot_password.dart'; // Link to ForgotPassword
+import 'package:provider/provider.dart';
+import 'package:flutter_final/signup.dart'; // Adjust path
+import 'package:flutter_final/home_page.dart'; // Adjust path
+import 'package:flutter_final/Services/forgot_password.dart'; // Adjust path
 
 class SignIn extends StatefulWidget {
   const SignIn({super.key});
@@ -21,6 +23,7 @@ class _SignInState extends State<SignIn> with SingleTickerProviderStateMixin {
 
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
 
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -47,7 +50,7 @@ class _SignInState extends State<SignIn> with SingleTickerProviderStateMixin {
 
   Future<void> signInWithGoogle() async {
     try {
-      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       if (googleUser == null) return;
 
       final GoogleSignInAuthentication googleAuth =
@@ -69,18 +72,25 @@ class _SignInState extends State<SignIn> with SingleTickerProviderStateMixin {
             .get();
 
         String userName = '';
+        String? userRole;
         if (userDoc.exists) {
           userName = userDoc['name'] ?? "No Name";
+          userRole = userDoc['role'] ?? "Patient";
         } else {
           userName = user.displayName ?? "No Name";
+          userRole = "Patient"; // Default role
           await FirebaseFirestore.instance
               .collection('users')
               .doc(user.uid)
               .set({
             'name': userName,
             'email': user.email ?? "No Email",
-          });
+            'role': userRole,
+          }, SetOptions(merge: true));
         }
+
+        Provider.of<UserModel>(context, listen: false)
+            .setUser(userName, user.email ?? "No Email", userRole);
 
         if (!mounted) return;
         Navigator.pushReplacement(
@@ -123,34 +133,59 @@ class _SignInState extends State<SignIn> with SingleTickerProviderStateMixin {
               .get();
 
           String userName = "No Name";
+          String? userRole;
           if (userDoc.exists) {
             userName = userDoc['name'] ?? "No Name";
-            print("User data found in Firestore: $userName");
+            userRole = userDoc['role'] ?? "Patient";
+            print("User data found in Firestore: $userName, Role: $userRole");
           } else {
             print("No user data found in Firestore, creating new entry");
+            userRole = "Patient"; // Default role
             await FirebaseFirestore.instance
                 .collection('users')
                 .doc(user.uid)
                 .set({
               'name': userName,
               'email': email,
-            });
+              'role': userRole,
+            }, SetOptions(merge: true));
           }
+
+          Provider.of<UserModel>(context, listen: false)
+              .setUser(userName, email, userRole);
 
           if (!mounted) return;
           print("Navigating to HomePage with userName: $userName");
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(
-                builder: (context) => HomePage(userName: userName)),
+            MaterialPageRoute(builder: (context) => HomePage(userName: userName)),
           );
         }
-      } catch (e) {
+      } on FirebaseAuthException catch (e) {
+        String errorMessage = "Sign-in failed";
+        if (e.code == 'user-not-found') {
+          errorMessage = "No user found with this email";
+        } else if (e.code == 'wrong-password') {
+          errorMessage = "Incorrect password";
+        }
         print("Sign-In Error: $e");
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text("Error: ${e.toString()}"),
+            content: Text(errorMessage),
+            backgroundColor: Colors.red.withOpacity(0.8),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
+      } catch (e) {
+        print("Unexpected Sign-In Error: $e");
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Error: $e"),
             backgroundColor: Colors.red.withOpacity(0.8),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
@@ -243,7 +278,7 @@ class _SignInState extends State<SignIn> with SingleTickerProviderStateMixin {
                   alignment: Alignment.centerRight,
                   child: TextButton(
                     onPressed: () {
-                      print("Forgot Password clicked"); // Debug statement
+                      print("Forgot Password clicked");
                       Navigator.push(
                         context,
                         MaterialPageRoute(

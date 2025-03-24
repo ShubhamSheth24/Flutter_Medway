@@ -13,17 +13,20 @@ class CartItem {
 class Cart with ChangeNotifier {
   final List<CartItem> _items = [];
 
-  List<CartItem> get items => _items;
+  List<CartItem> get items => List.unmodifiable(_items); // Immutable getter
 
   double get subtotal => _items.fold(0, (total, item) {
-        double price = double.tryParse(item.product['price'].toString()) ?? 0.0;
+        double price =
+            double.tryParse(item.product['price']?.toString() ?? '0') ?? 0.0;
         return total + price * item.quantity;
       });
 
   double get taxes => _items.fold(0, (total, item) {
-        double price = double.tryParse(item.product['price'].toString()) ?? 0.0;
+        double price =
+            double.tryParse(item.product['price']?.toString() ?? '0') ?? 0.0;
         double taxPercentage =
-            double.tryParse(item.product['taxPercentage'].toString()) ?? 0.0;
+            double.tryParse(item.product['taxPercentage']?.toString() ?? '0') ??
+                0.0;
         return total + (price * taxPercentage / 100) * item.quantity;
       });
 
@@ -40,13 +43,15 @@ class Cart with ChangeNotifier {
       final newQuantity = _items[existingItemIndex].quantity + quantityToAdd;
       if (newQuantity <= maxStock) {
         _items[existingItemIndex].quantity = newQuantity;
+        notifyListeners();
       }
     } else {
       if (quantityToAdd <= maxStock) {
-        _items.add(CartItem(product: product, quantity: quantityToAdd));
+        _items.add(CartItem(
+            product: Map.from(product), quantity: quantityToAdd)); // Deep copy
+        notifyListeners();
       }
     }
-    notifyListeners();
   }
 
   void removeFromCart(Map<String, dynamic> product) {
@@ -158,12 +163,13 @@ class _CartScreenState extends State<CartScreen>
                           itemBuilder: (context, index) {
                             final item = cart.items[index];
                             final price = double.tryParse(
-                                    item.product['price'].toString()) ??
+                                    item.product['price']?.toString() ?? '0') ??
                                 0.0;
                             final maxStock =
                                 cart._parseQuantity(item.product['quantity']);
                             return Dismissible(
-                              key: Key(item.product['id'].toString()),
+                              key: Key(item.product['id']?.toString() ??
+                                  index.toString()),
                               direction: DismissDirection.endToStart,
                               onDismissed: (_) => cart.deleteItem(item.product),
                               background: Container(
@@ -467,22 +473,22 @@ class _CartScreenState extends State<CartScreen>
       width: double.infinity,
       child: ElevatedButton(
         onPressed: () {
-          print('Checkout button pressed'); // Debug
+          print('Checkout button pressed');
           if (cart.items.isNotEmpty) {
             try {
-              print('Cart items: ${cart.items.length}'); // Debug
+              print('Cart items: ${cart.items.length}');
               final medicines = cart.items
                   .map((item) => Medicine(
                         name: item.product['name'] ?? 'Unnamed Item',
-                        price:
-                            double.tryParse(item.product['price'].toString()) ??
-                                0.0,
+                        price: double.tryParse(
+                                item.product['price']?.toString() ?? '0') ??
+                            0.0,
                         imageUrl: item.product['imageUrl'] ?? '',
                       ))
                   .toList();
 
               print(
-                  'Navigating to CheckoutScreen with ${medicines.length} items'); // Debug
+                  'Navigating to CheckoutScreen with ${medicines.length} items');
               Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -492,11 +498,11 @@ class _CartScreenState extends State<CartScreen>
                   ),
                 ),
               ).then((value) {
-                print('Returned from CheckoutScreen: $value'); // Debug
+                print('Returned from CheckoutScreen: $value');
                 if (value == true) cart.clearCart();
               });
             } catch (e) {
-              print('Error navigating to checkout: $e'); // Debug
+              print('Error navigating to checkout: $e');
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text('Error navigating to checkout: $e'),
@@ -508,7 +514,7 @@ class _CartScreenState extends State<CartScreen>
               );
             }
           } else {
-            print('Cart is empty'); // Debug
+            print('Cart is empty');
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: const Text('Cart is empty! Add items to proceed.'),

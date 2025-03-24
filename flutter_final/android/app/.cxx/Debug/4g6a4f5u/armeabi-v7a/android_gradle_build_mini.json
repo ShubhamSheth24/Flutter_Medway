@@ -1,0 +1,20 @@
+{
+  "buildFiles": [
+    "C:\\Users\\karti\\Downloads\\flutter_windows_3.24.3-stable\\flutter\\packages\\flutter_tools\\gradle\\src\\main\\groovy\\CMakeLists.txt"
+  ],
+  "cleanCommandsComponents": [
+    [
+      "C:\\Users\\karti\\AppData\\Local\\Android\\sdk\\cmake\\3.22.1\\bin\\ninja.exe",
+      "-C",
+      "C:\\Users\\karti\\OneDrive\\Desktop\\Flutter_Medway-mainfixer\\Flutter_Medway-main\\flutter_final\\android\\app\\.cxx\\Debug\\4g6a4f5u\\armeabi-v7a",
+      "clean"
+    ]
+  ],
+  "buildTargetsCommandComponents": [
+    "C:\\Users\\karti\\AppData\\Local\\Android\\sdk\\cmake\\3.22.1\\bin\\ninja.exe",
+    "-C",
+    "C:\\Users\\karti\\OneDrive\\Desktop\\Flutter_Medway-mainfixer\\Flutter_Medway-main\\flutter_final\\android\\app\\.cxx\\Debug\\4g6a4f5u\\armeabi-v7a",
+    "{LIST_OF_TARGETS_TO_BUILD}"
+  ],
+  "libraries": {}
+}

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_final/models/user_model.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:flutter_final/sigin.dart'; // Corrected from sigin.dart
+import 'package:provider/provider.dart';
+import 'package:flutter_final/sigin.dart'; // Adjust path
 
 class SignUp extends StatefulWidget {
   const SignUp({super.key});
@@ -19,6 +21,7 @@ class _SignUpState extends State<SignUp> with SingleTickerProviderStateMixin {
   String name = "";
   String emailError = "";
   String passwordError = "";
+  String? selectedRole;
 
   TextEditingController emailController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
@@ -47,6 +50,9 @@ class _SignUpState extends State<SignUp> with SingleTickerProviderStateMixin {
   @override
   void dispose() {
     _animationController.dispose();
+    emailController.dispose();
+    passwordController.dispose();
+    nameController.dispose();
     super.dispose();
   }
 
@@ -81,7 +87,7 @@ class _SignUpState extends State<SignUp> with SingleTickerProviderStateMixin {
   Future<void> registerUser() async {
     try {
       UserCredential userCredential =
-          await FirebaseAuth.instance.createUserWithEmailAndPassword(
+          await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
@@ -92,19 +98,27 @@ class _SignUpState extends State<SignUp> with SingleTickerProviderStateMixin {
           .set({
         'name': name,
         'email': email,
+        'role': selectedRole,
       });
+
+      Provider.of<UserModel>(context, listen: false)
+          .setUser(name, email, selectedRole);
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text("Registration successful!"),
+          content: const Text("Signed up successfully!"),
           backgroundColor: Colors.green,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
           ),
+          duration: const Duration(seconds: 2),
         ),
       );
 
+      // Delay to allow the user to see the message before redirecting
+      await Future.delayed(const Duration(seconds: 2));
+      if (!mounted) return;
       Navigator.pushReplacement(
           context, MaterialPageRoute(builder: (context) => const SignIn()));
     } on FirebaseAuthException catch (e) {
@@ -148,19 +162,28 @@ class _SignUpState extends State<SignUp> with SingleTickerProviderStateMixin {
         await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
           'name': user.displayName ?? "No Name",
           'email': user.email ?? "No Email",
+          'role': selectedRole ?? 'Patient',
         }, SetOptions(merge: true));
+
+        Provider.of<UserModel>(context, listen: false).setUser(
+            user.displayName ?? "No Name",
+            user.email ?? "No Email",
+            selectedRole ?? 'Patient');
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text("Google Sign-Up successful!"),
+            content: const Text("Signed up successfully with Google!"),
             backgroundColor: Colors.green,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
             ),
+            duration: const Duration(seconds: 2),
           ),
         );
 
+        await Future.delayed(const Duration(seconds: 2));
+        if (!mounted) return;
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const SignIn()),
@@ -189,21 +212,27 @@ class _SignUpState extends State<SignUp> with SingleTickerProviderStateMixin {
     if (emailError.isEmpty &&
         passwordError.isEmpty &&
         name.isNotEmpty &&
-        isAgreed) {
+        isAgreed &&
+        selectedRole != null) {
       registerUser();
     } else {
+      String errorMessage = "";
       if (!isAgreed) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text("You must agree to the terms and conditions"),
-            backgroundColor: Colors.red.withOpacity(0.8),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
-        );
+        errorMessage = "You must agree to the terms and conditions";
+      } else if (selectedRole == null) {
+        errorMessage = "Please select a role";
       }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              errorMessage.isEmpty ? "Please fill all fields" : errorMessage),
+          backgroundColor: Colors.red.withOpacity(0.8),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
     }
   }
 
@@ -271,6 +300,45 @@ class _SignUpState extends State<SignUp> with SingleTickerProviderStateMixin {
                   ),
                   onPressed: () =>
                       setState(() => passwordVisible = !passwordVisible),
+                ),
+              ),
+              const SizedBox(height: 20),
+              FadeTransition(
+                opacity: _fadeAnimation,
+                child: DropdownButtonFormField<String>(
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.group, color: Colors.grey),
+                    hintText: "Select your role",
+                    hintStyle:
+                        const TextStyle(color: Colors.grey, fontSize: 16),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide:
+                          BorderSide(color: Colors.grey.withOpacity(0.3)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide:
+                          BorderSide(color: Colors.grey.withOpacity(0.3)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide:
+                          const BorderSide(color: Color(0xFF407CE2), width: 2),
+                    ),
+                    filled: true,
+                    fillColor: Colors.grey[100],
+                    contentPadding: const EdgeInsets.symmetric(
+                        vertical: 16, horizontal: 16),
+                  ),
+                  value: selectedRole,
+                  items: ['Patient', 'Caretaker']
+                      .map((role) => DropdownMenuItem(
+                            value: role,
+                            child: Text(role),
+                          ))
+                      .toList(),
+                  onChanged: (value) => setState(() => selectedRole = value),
                 ),
               ),
               const SizedBox(height: 20),
