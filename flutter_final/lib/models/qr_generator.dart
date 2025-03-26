@@ -1,120 +1,10 @@
-// import 'package:flutter/material.dart';
-// import 'package:qr_flutter/qr_flutter.dart';
-
-// class QRCodeGenerator extends StatelessWidget {
-//   final String userId;
-
-//   const QRCodeGenerator({super.key, required this.userId});
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: AppBar(
-//         elevation: 0,
-//         backgroundColor: Colors.purple,
-//         title: const Text(
-//           'Generate QR Code',
-//           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-//         ),
-//         centerTitle: true,
-//         leading: IconButton(
-//           icon: const Icon(Icons.arrow_back, color: Colors.white),
-//           onPressed: () => Navigator.pop(context),
-//         ),
-//       ),
-//       body: Container(
-//         decoration: BoxDecoration(
-//           gradient: LinearGradient(
-//             begin: Alignment.topCenter,
-//             end: Alignment.bottomCenter,
-//             colors: [Colors.purple.shade50, Colors.white],
-//           ),
-//         ),
-//         child: Center(
-//           child: Padding(
-//             padding: const EdgeInsets.all(20.0),
-//             child: Column(
-//               mainAxisAlignment: MainAxisAlignment.center,
-//               children: [
-//                 const Text(
-//                   'Your QR Code',
-//                   style: TextStyle(
-//                     fontSize: 28,
-//                     fontWeight: FontWeight.bold,
-//                     color: Colors.purple,
-//                   ),
-//                 ),
-//                 const SizedBox(height: 20),
-//                 Container(
-//                   padding: const EdgeInsets.all(16),
-//                   decoration: BoxDecoration(
-//                     color: Colors.white,
-//                     borderRadius: BorderRadius.circular(16),
-//                     boxShadow: [
-//                       BoxShadow(
-//                         color: Colors.purple.withOpacity(0.2),
-//                         spreadRadius: 2,
-//                         blurRadius: 8,
-//                         offset: const Offset(0, 4),
-//                       ),
-//                     ],
-//                   ),
-//                   child: QrImageView(
-//                     data: userId,
-//                     version: QrVersions.auto,
-//                     size: 250.0,
-//                     backgroundColor: Colors.white,
-//                     eyeStyle: const QrEyeStyle(
-//                       eyeShape: QrEyeShape.circle,
-//                       color: Colors.purple,
-//                     ),
-//                     dataModuleStyle: const QrDataModuleStyle(
-//                       dataModuleShape: QrDataModuleShape.circle,
-//                       color: Colors.purple,
-//                     ),
-//                   ),
-//                 ),
-//                 const SizedBox(height: 20),
-//                 const Text(
-//                   'Scan this QR code to link accounts',
-//                   style: TextStyle(fontSize: 16, color: Colors.grey),
-//                   textAlign: TextAlign.center,
-//                 ),
-//                 const SizedBox(height: 30),
-//                 ElevatedButton.icon(
-//                   onPressed: () {
-//                     ScaffoldMessenger.of(context).showSnackBar(
-//                       const SnackBar(
-//                         content: Text('QR Code Generated!'),
-//                         backgroundColor: Colors.purple,
-//                       ),
-//                     );
-//                   },
-//                   icon: const Icon(Icons.check_circle, color: Colors.white),
-//                   label: const Text('Done'),
-//                   style: ElevatedButton.styleFrom(
-//                     backgroundColor: Colors.purple,
-//                     foregroundColor: Colors.white,
-//                     padding: const EdgeInsets.symmetric(
-//                         horizontal: 30, vertical: 15),
-//                     shape: RoundedRectangleBorder(
-//                       borderRadius: BorderRadius.circular(12),
-//                     ),
-//                     elevation: 5,
-//                   ),
-//                 ),
-//               ],
-//             ),
-//           ),
-//         ),
-//       ),
-//     );
-//   }
-// }
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_final/models/qr_state.dart'; // Adjust the import path
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_final/models/qr_state.dart'; // Adjust the import path if needed
 
 class QRCodeGenerator extends StatefulWidget {
   final String userId;
@@ -126,6 +16,57 @@ class QRCodeGenerator extends StatefulWidget {
 }
 
 class _QRCodeGeneratorState extends State<QRCodeGenerator> {
+  Timer? _timer; // Timer to update the UI every second
+
+  @override
+  void initState() {
+    super.initState();
+    // Start a timer to refresh the UI every second for remaining time updates
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) {
+        setState(() {}); // Trigger rebuild to update remaining time
+      }
+    });
+    _validateUserRole(); // Validate that the user is a patient
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel(); // Clean up the timer
+    super.dispose();
+  }
+
+  // Validate that the user is a patient before generating QR
+  Future<void> _validateUserRole() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || user.uid != widget.userId) {
+      _showSnackBar('Please sign in to generate a QR code', Colors.red);
+      if (mounted) Navigator.pop(context);
+      return;
+    }
+
+    final userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(widget.userId)
+        .get();
+
+    if (!userDoc.exists || userDoc['role'] != 'Patient') {
+      _showSnackBar('Only patients can generate QR codes', Colors.red);
+      if (mounted) Navigator.pop(context);
+    }
+  }
+
+  void _showSnackBar(String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: color,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<QRState>(

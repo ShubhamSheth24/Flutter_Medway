@@ -12,8 +12,9 @@ import 'package:flutter_final/maps.dart';
 import 'package:flutter_final/payment_method_page.dart';
 import 'package:flutter_final/pharmacy.dart';
 import 'package:flutter_final/products.dart';
-import 'package:flutter_final/profile_page.dart';
-import 'package:flutter_final/reports.dart';
+import 'package:flutter_final/profile_page.dart'
+    as profile; // Alias for profile_page.dart
+import 'package:flutter_final/reports.dart'; // Importing reports.dart
 import 'package:flutter_final/top_dr.dart';
 import 'package:flutter_final/Screens/medicine_screen.dart';
 import 'package:flutter_final/articles.dart';
@@ -117,11 +118,13 @@ class _HomePageState extends State<HomePage>
           _isLoading = false;
         });
         userModel.updateName(userName);
-        final profileImageUrl = snapshot.data().toString().contains('profileImageUrl')
-            ? snapshot.get('profileImageUrl') as String?
-            : null;
+        final profileImageUrl =
+            snapshot.data().toString().contains('profileImageUrl')
+                ? snapshot.get('profileImageUrl') as String?
+                : null;
         userModel.updateProfileImage(profileImageUrl ?? '');
-        print("HomePage - UserModel updated with profileImageUrl: $profileImageUrl");
+        print(
+            "HomePage - UserModel updated with profileImageUrl: $profileImageUrl");
       } else if (mounted) {
         setState(() => _isLoading = false);
       }
@@ -229,14 +232,17 @@ class _HomePageState extends State<HomePage>
                             }
                             String? profileImageUrl;
                             if (snapshot.hasData && snapshot.data!.exists) {
-                              final data = snapshot.data!.data() as Map<String, dynamic>?;
-                              profileImageUrl = data!.containsKey('profileImageUrl')
-                                  ? data!['profileImageUrl'] as String?
-                                  : null;
+                              final data = snapshot.data!.data()
+                                  as Map<String, dynamic>?;
+                              profileImageUrl =
+                                  data!.containsKey('profileImageUrl')
+                                      ? data!['profileImageUrl'] as String?
+                                      : null;
                               print(
                                   "HomePage - StreamBuilder fetched profileImageUrl: $profileImageUrl");
                             } else {
-                              print("HomePage - No data or document doesn’t exist");
+                              print(
+                                  "HomePage - No data or document doesn’t exist");
                             }
                             return CircleAvatar(
                               radius: 40,
@@ -508,7 +514,8 @@ class _HomePageState extends State<HomePage>
     );
   }
 
-  Widget _buildReportsView() => ReportsContent(userName: userName);
+  Widget _buildReportsView() =>
+      ReportsContents(userName: userName); // Updated to ReportsContents
 
   Widget _buildNotificationsView() => const NotificationsDashboard();
 
@@ -531,7 +538,9 @@ class _HomePageState extends State<HomePage>
                     _buildReportsView(),
                     _buildNotificationsView(),
                     _buildRemindersView(),
-                    ProfilePage(userName: userName),
+                    profile.ProfilePage(
+                        userName:
+                            userName), // Updated to profile.ReportsContent
                   ],
                 ),
         ),

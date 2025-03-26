@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class QRState with ChangeNotifier {
   String? _qrData;
   DateTime? _qrGeneratedTime;
-  static const int _qrValidityMinutes = 5;
+  static const int _qrValidityMinutes = 1;
 
   String? get qrData => _qrData;
   DateTime? get qrGeneratedTime => _qrGeneratedTime;
@@ -17,7 +17,7 @@ class QRState with ChangeNotifier {
   void generateQR(String userId) {
     if (!isButtonEnabled) return;
     final timestamp = DateTime.now().millisecondsSinceEpoch.toString();
-    _qrData = '${userId}_$timestamp';
+    _qrData = '${userId}';
     _qrGeneratedTime = DateTime.now();
     notifyListeners();
   }

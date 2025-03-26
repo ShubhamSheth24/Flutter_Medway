@@ -1,0 +1,19 @@
+import 'package:flutter/material.dart';
+
+class ReportFilterState with ChangeNotifier {
+  String _filter = 'All';
+  bool _showDaily = true;
+
+  String get filter => _filter;
+  bool get showDaily => _showDaily;
+
+  void setFilter(String newFilter) {
+    _filter = newFilter;
+    notifyListeners();
+  }
+
+  void setShowDaily(bool value) {
+    _showDaily = value;
+    notifyListeners();
+  }
+}

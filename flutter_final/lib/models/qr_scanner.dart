@@ -27,37 +27,71 @@ class _QRCodeScannerState extends State<QRCodeScanner> {
     }
 
     try {
-      // Check if patient is already linked
+      // Fetch patient document to validate
       final patientDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(scannedUid)
           .get();
-      if (patientDoc.exists && patientDoc['linkedUid'] != null) {
+
+      if (!patientDoc.exists) {
+        _showSnackBar('Invalid patient UID', Colors.red);
+        return;
+      }
+
+      if (patientDoc['role'] != 'Patient') {
+        _showSnackBar('Scanned UID is not a patient', Colors.red);
+        return;
+      }
+
+      if (patientDoc['linkedUid'] != null) {
         _showSnackBar(
             'This patient is already linked to another caretaker', Colors.red);
         return;
       }
 
-      // Link caretaker to patient
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(scannedUid)
-          .update({'linkedUid': caretakerUid});
-
-      // Link patient to caretaker
-      await FirebaseFirestore.instance
+      // Fetch caretaker document to ensure they are a caretaker
+      final caretakerDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(caretakerUid)
-          .update({'linkedUid': scannedUid});
+          .get();
+
+      if (!caretakerDoc.exists || caretakerDoc['role'] != 'Caretaker') {
+        _showSnackBar('You must be a caretaker to link patients', Colors.red);
+        return;
+      }
+
+      // Perform the linking in a batch to ensure atomicity
+      WriteBatch batch = FirebaseFirestore.instance.batch();
+
+      // Update patient’s linkedUid to point to the caretaker
+      batch.update(
+        FirebaseFirestore.instance.collection('users').doc(scannedUid).update(),
+       
+      );
+
+      // Add patient UID to caretaker’s patients array
+      batch.set(
+        FirebaseFirestore.instance.collection('users').doc(caretakerUid),
+        {
+          'patients': FieldValue.arrayUnion([scannedUid])
+        },
+        SetOptions(merge: true),
+      );
+
+      // Commit the batch
+      await batch.commit();
 
       if (mounted) {
         Navigator.pop(context); // Return to ProfilePage
-        _showSnackBar('Linked successfully with UID: $scannedUid', Colors.teal);
+        _showSnackBar(
+            'Linked successfully with patient UID: $scannedUid', Colors.teal);
       }
     } catch (e) {
       if (mounted) {
         _showSnackBar('Error linking accounts: $e', Colors.red);
       }
+    } finally {
+      setState(() => _isScanning = true); // Re-enable scanning if needed
     }
   }
 
